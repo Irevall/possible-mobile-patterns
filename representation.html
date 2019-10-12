@@ -1,0 +1,154 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Representation of the mobile unlock pattern</title>
+  <link href="https://fonts.googleapis.com/css?family=Roboto:400,700,900&display=swap" rel="stylesheet">
+  <style>
+    body {
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      font-family: 'Roboto', sans-serif;
+      min-height: 100vh;
+    }
+
+    .pattern {
+      display: grid;
+      grid-template-columns: repeat(3, 50px);
+      grid-template-rows: repeat(3, 50px);
+      grid-gap: 30px;
+    }
+
+    .pattern__point {
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      background: #4f81bd;
+      border: 3px solid #215968;
+      border-radius: 50%;
+      color: white;
+      font-weight: 700;
+      font-size: 18px;
+      cursor: default;
+    }
+
+    .pattern__point--highlighted {
+      background: #bd7016;
+      border-color: #9c5305;
+    }
+  </style>
+</head>
+<body>
+  <div class="pattern"></div>
+
+  <script>
+    function addPatternPoint (x, y) {
+      const pattern = document.querySelector('.pattern')
+      const patternPoint = document.createElement('div')
+
+      patternPoint.classList.add('pattern__point')
+      patternPoint.innerHTML = `[${x},${y}]`
+      patternPoint.addEventListener('click', (event) => {
+        event.target.classList.add('pattern__point--highlighted')
+      })
+      pattern.appendChild(patternPoint)
+    }
+
+    function createGrid (x, y) {
+      const grid = []
+      for (let i = 0; i < y; i++) {
+        for (let j = 0; j < x; j++) {
+          grid.push({
+            coordinates: {
+              x: i,
+              y: j,
+            },
+            isStartingPoint: j <= (Math.ceil(x / 2) - 1) && i <= (Math.ceil(y / 2) - 1),
+            dependencies: []
+          })
+          addPatternPoint(j, i)
+        }
+      }
+
+      const pattern = document.querySelector('.pattern')
+      pattern.style['grid-template-columns'] = `repeat(${x}, 50px)`
+      pattern.style['grid-template-rows'] = `repeat(${y}, 50px)`
+
+      return grid
+    }
+
+    function findPointsInbetween (coordinates1, coordinates2) {
+      const pointsInbetween = []
+      const delta = {
+        x: coordinates1.x - coordinates2.x,
+        y: coordinates1.y - coordinates2.y,
+      }
+
+      const greatestCommonDivisor = findGreatestCommonDivisor(Math.abs(delta.x), Math.abs(delta.y))
+      // return greatestCommonDivisor
+      if (greatestCommonDivisor === 1) return null
+
+      const step = {
+        x: delta.x / greatestCommonDivisor,
+        y: delta.y / greatestCommonDivisor,
+      }
+
+      let temporary = {
+        x: coordinates1.x - step.x,
+        y: coordinates1.y - step.y
+      }
+
+      while (temporary.x !== coordinates2.x || temporary.y !== coordinates2.y) {
+        pointsInbetween.push(temporary)
+
+        temporary.x -= step.x
+        temporary.y -= step.y
+      }
+
+      return pointsInbetween
+    }
+
+    function findGreatestCommonDivisor(a, b) {
+      if (!a) return b
+      if (!b) return a
+
+      a = Math.abs(a)
+      b = Math.abs(b)
+
+      while(b) {
+        let temporary = b
+        b = a % b
+        a = temporary
+      }
+
+      return a
+    }
+
+    function main() {
+      const x = 5
+      const y = 4
+
+      const grid = createGrid(x, y)
+      const startingPoints = grid.filter(point => point.isStartingPoint)
+
+      for (let startingPoint of startingPoints) {
+        for (let point of grid) {
+          if (point === startingPoint) continue
+
+          const target = {
+            coordinates: point.coordinates,
+            inbetween: findPointsInbetween(startingPoint.coordinates, point.coordinates)
+          }
+
+          startingPoint.dependencies.push(target)
+        }
+      }
+
+      console.log(startingPoints[0])
+      // console.log(startingPoints)
+    }
+    main()
+  </script>
+</body>
+</html>
