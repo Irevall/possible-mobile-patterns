@@ -1,7 +1,7 @@
-### Count possible patterns (in mobile style lock)
+## Count possible patterns (in mobile style lock)
 ##### With full description of how I attempted to solve the problem
 
-#### Full task overview:
+### Full task overview:
 
 ![Task example](./readme/task-example.png?raw=true)
 
@@ -21,7 +21,7 @@ Actual task?
 Write a function countCodes(start, length) that returns how many possible patterns exist, matching those parameters.
 
 
-#### Step 0 - first thoughts and observations
+### Step 0 - first thoughts and observations
 My first thought was that it's extremally trivial to describe the problem (and the solution) to another human, but
 I have literally no idea how to represent connection rules in technical terms.
 
@@ -40,7 +40,7 @@ My other observation was that if I somehow wrote down dependencies that occur in
 
 I could easily use it in the same fashion, mirror it through every axis and from A dependencies I can have all 3 other.
 
-#### Step 1 - representation
+### Step 1 - representation
 2 things occured to me, first of all, since I still had no idea how to write dependencies and given that it was just a 3x3 block,
 I could just write it out manually and it would probably be the quickest solution. So I could just write out:
 - Starting point
@@ -59,7 +59,7 @@ Now, about scaling up...
 It's not mentioned at all in the task, but I figured out that it might be great idea if I want to shine and it shouldn't be that hard...
 if I figure out all "logic" behind this.
 
-#### Step 2 - scaling up and logic
+### Step 2 - scaling up and logic
 So, let's say we aren't talking about 3×3 grid anymore, but X×X or even X×Y.
 
 1 - Coming back to previous picture with axis of symmetry, if we want to accept custom grids, including X×Y, we reduce our axis
@@ -75,7 +75,7 @@ Given point A [xa, ya] and B [xb, yb] find their delta [dx, dy]. If they have a 
 there is at least a single point between them. So, for example our delta is [6, 3], common divisor 3, giving us [2, 1],
 which, going from either point gives us [2, 1] and [4, 2].
 
-#### Step 3 - actual code (inefficient)
+### Step 3 - actual code (inefficient)
 
 1. Get X and Y to create a grid
 2. Find starting points (top left quarter), as in each point [a, b] where a <= | (X + 1) / 2 |, b <= | (Y + 1) / 2 |
@@ -84,3 +84,20 @@ which, going from either point gives us [2, 1] and [4, 2].
 5. Remove repeated entries
 6. Get [x, y] and number of moves between 2 and X * Y from user
 7. Resursively check possible moves down the tree
+
+
+### Current implementation
+
+I skipped entire part about only getting dependencies for 1/4 of the grid and then flipping it by axis, because
+I think it would take me more time to implement than it would actually save
+
+I'm not very good at OOP (honestly, not good at all), but I attempted to use it a bit.
+
+I'm missing a lot of fancy things I planned, for example, html inputs for different grid sizes, moves, but tying Data with
+DOM in Vanilla JS is tiresome, I'll get to it if I rewrite the app to Vue.
+
+### Current problems
+
+Initial time (to find all dependencies) is not a problem at all, but current implementation of finding all possible patterns 
+is really, really slow, especially given bigger grids. It's not an issue for 3×3, where it takes about 20ms given all 9 moves,
+but with 4×4 grid and same number of moves it can be... 5000 times slower.

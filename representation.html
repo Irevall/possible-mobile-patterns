@@ -7,6 +7,7 @@
   <style>
     body {
       display: flex;
+      flex-direction: column;
       justify-content: center;
       align-items: center;
       font-family: 'Roboto', sans-serif;
@@ -40,53 +41,148 @@
   </style>
 </head>
 <body>
+  <span>Click point to get number of possibilities when starting at that point (in console 😥)</span>
+  <span>If you want to edit Grid size or number of moves, unfortunately you have to edit the script</span>
   <div class="pattern"></div>
 
-  <script>
-    function addPatternPoint (x, y) {
-      const pattern = document.querySelector('.pattern')
-      const patternPoint = document.createElement('div')
+<script>
+  function findGreatestCommonDivisor (a, b) {
+    if (!a) return b
+    if (!b) return a
 
-      patternPoint.classList.add('pattern__point')
-      patternPoint.innerHTML = `[${x},${y}]`
-      patternPoint.addEventListener('click', (event) => {
-        event.target.classList.add('pattern__point--highlighted')
-      })
-      pattern.appendChild(patternPoint)
+    a = Math.abs(a)
+    b = Math.abs(b)
+
+    while (b) {
+      let temporary = b
+      b = a % b
+      a = temporary
     }
 
-    function createGrid (x, y) {
-      const grid = []
-      for (let i = 0; i < y; i++) {
-        for (let j = 0; j < x; j++) {
-          grid.push({
-            coordinates: {
-              x: i,
-              y: j,
-            },
-            isStartingPoint: j <= (Math.ceil(x / 2) - 1) && i <= (Math.ceil(y / 2) - 1),
-            dependencies: []
-          })
-          addPatternPoint(j, i)
+    return a
+  }
+
+  class Grid {
+    constructor (width, height) {
+      this.width = width
+      this.height = height
+      this.points = []
+
+      this.createPoints()
+    }
+
+    createPoints () {
+      for (let i = 0; i < this.height; i++) {
+        for (let j = 0; j < this.width; j++) {
+          this.points.push(new StartingPoint(j, i))
         }
       }
 
       const pattern = document.querySelector('.pattern')
-      pattern.style['grid-template-columns'] = `repeat(${x}, 50px)`
-      pattern.style['grid-template-rows'] = `repeat(${y}, 50px)`
+      pattern.style['grid-template-columns'] = `repeat(${this.width}, 50px)`
+      pattern.style['grid-template-rows'] = `repeat(${this.height}, 50px)`
 
-      return grid
+      this.addDependencies()
     }
 
-    function findPointsInbetween (coordinates1, coordinates2) {
+    addDependencies () {
+      for (let startingPoint of this.points) {
+        for (let point of this.points) {
+          if (point === startingPoint) continue
+
+          startingPoint.dependencies.push(new Dependency(startingPoint, point))
+        }
+      }
+    }
+
+    countPossibilities (startingPoint, moves) {
+      console.time('Time to find all possible patterns')
+      const sum = this.findPattern([startingPoint.hash], startingPoint, moves - 1)
+      console.timeEnd('Time to find all possible patterns')
+
+      console.log(`Starting point: ${startingPoint.hash}`)
+      console.log(`Number of moves: ${moves}`)
+      console.log(`Number of combinations: ${sum}`)
+    }
+
+    findPattern (entries, lastEntry, movesLeft) {
+      if (movesLeft === 0) {
+        // console.log(entries)
+        return 1
+      }
+
+      let possibilities = 0
+
+      for (let possibility of lastEntry.dependencies) {
+        if (entries.includes(possibility.target.hash)) continue
+
+        if (!possibility.inbetween || this.checkIfViablePath(entries, possibility.inbetween)) {
+          possibilities += this.findPattern([...entries, possibility.target.hash], possibility.target, movesLeft - 1)
+        }
+
+      }
+
+      return possibilities
+    }
+
+    checkIfViablePath (entries, necessaryPoints) {
+      for (let point of necessaryPoints) {
+        if (!entries.includes(point)) return false
+      }
+
+      return true
+    }
+  }
+
+  class Point {
+    constructor (x, y) {
+      this.x = x
+      this.y = y
+    }
+
+    get hash () {
+      return `${this.x}-${this.y}`
+    }
+  }
+
+  class StartingPoint extends Point {
+    constructor (x, y) {
+      super(x, y)
+
+      this.dependencies = []
+      this.addToView()
+    }
+
+    addToView () {
+      const pattern = document.querySelector('.pattern')
+      const patternPoint = document.createElement('div')
+
+      patternPoint.classList.add('pattern__point')
+      patternPoint.innerHTML = `[${this.x},${this.y}]`
+      patternPoint.addEventListener('click', (event) => {
+        // event.target.classList.add('pattern__point--highlighted')
+        grid.countPossibilities(this, moves)
+      })
+      pattern.appendChild(patternPoint)
+    }
+  }
+
+  class Dependency {
+    constructor (start, target) {
+      this.target = target
+      this.inbetween = this.findPointsInbetween(start)
+    }
+
+    findPointsInbetween (start) {
       const pointsInbetween = []
+
       const delta = {
-        x: coordinates1.x - coordinates2.x,
-        y: coordinates1.y - coordinates2.y,
+        x: start.x - this.target.x,
+        y: start.y - this.target.y,
       }
 
       const greatestCommonDivisor = findGreatestCommonDivisor(Math.abs(delta.x), Math.abs(delta.y))
-      // return greatestCommonDivisor
+
       if (greatestCommonDivisor === 1) return null
 
       const step = {
@@ -95,12 +191,12 @@
       }
 
       let temporary = {
-        x: coordinates1.x - step.x,
-        y: coordinates1.y - step.y
+        x: start.x - step.x,
+        y: start.y - step.y
       }
 
-      while (temporary.x !== coordinates2.x || temporary.y !== coordinates2.y) {
-        pointsInbetween.push(temporary)
+      while (temporary.x !== this.target.x || temporary.y !== this.target.y) {
+        pointsInbetween.push(`${temporary.x}-${temporary.y}`)
 
         temporary.x -= step.x
         temporary.y -= step.y
@@ -108,47 +204,13 @@
 
       return pointsInbetween
     }
+  }
 
-    function findGreatestCommonDivisor(a, b) {
-      if (!a) return b
-      if (!b) return a
+  // replace Grid(3, 3) with desired width and height
+  const grid = new Grid(3, 3)
 
-      a = Math.abs(a)
-      b = Math.abs(b)
-
-      while(b) {
-        let temporary = b
-        b = a % b
-        a = temporary
-      }
-
-      return a
-    }
-
-    function main() {
-      const x = 5
-      const y = 4
-
-      const grid = createGrid(x, y)
-      const startingPoints = grid.filter(point => point.isStartingPoint)
-
-      for (let startingPoint of startingPoints) {
-        for (let point of grid) {
-          if (point === startingPoint) continue
-
-          const target = {
-            coordinates: point.coordinates,
-            inbetween: findPointsInbetween(startingPoint.coordinates, point.coordinates)
-          }
-
-          startingPoint.dependencies.push(target)
-        }
-      }
-
-      console.log(startingPoints[0])
-      // console.log(startingPoints)
-    }
-    main()
-  </script>
+  // replace moves with desired moves
+  const moves = 9
+</script>
 </body>
 </html>
