@@ -126,6 +126,8 @@
     }
 
     checkIfViablePath (entries, necessaryPoints) {
+      if (necessaryPoints.length > entries.length) return false
+
       for (let point of necessaryPoints) {
         if (!entries.includes(point)) return false
       }
